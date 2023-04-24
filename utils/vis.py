@@ -1,0 +1,178 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from . import resistance_metrics as ermet
+from scipy.spatial.distance import squareform
+import pandas as pd
+import networkx as nx
+
+def plot_violins_node_metrics(df_res, df_total, df_tot_filter, df_diam, save=False):
+    """_summary_
+
+    Args:
+        df_res (_type_): _description_
+        df_total (_type_): _description_
+        df_tot_filter (_type_): _description_
+        df_diam (_type_): _description_
+        save (bool, optional): _description_. Defaults to False.
+    """
+    f, axs = plt.subplots(2,2, figsize=(6,5))
+    axs = axs.ravel()
+
+    sns.violinplot(df_res, inner="box",  bw= 0.5, ax=axs[0], orient='v', palette='colorblind', cut=0, linewidth=0.7)
+    sns.violinplot(df_total, inner="box",  bw= 1.2, ax=axs[1], orient='v', palette='colorblind', cut=0, linewidth=0.7)
+    sns.violinplot(df_tot_filter, inner="box",  bw= 0.3, ax=axs[2], orient='v', palette='colorblind', cut=0, linewidth=0.7)
+    sns.violinplot(df_diam, inner="box",  bw= 3, ax=axs[3], orient='v', palette='colorblind', cut=0, linewidth=0.7)
+
+    axs[0].set_title('$R_{uv}$')
+    axs[1].set_title('$Res_G(u)$')
+    axs[2].set_title('$Res_G(u, \mathcal{N})$')
+    axs[3].set_title('$\mathcal{R}_{diam}(u)$')
+
+    axs[0].set_xticklabels(axs[0].get_xticklabels(), fontsize=12, rotation=10)
+    axs[1].set_xticklabels(axs[1].get_xticklabels(), fontsize=12, rotation=10)
+    axs[2].set_xticklabels(axs[2].get_xticklabels(), fontsize=12, rotation=10)
+    axs[3].set_xticklabels(axs[3].get_xticklabels(), fontsize=12, rotation=10)
+
+
+    axs[0].scatter(x=range(4),y=df_res.mean(),c="black", marker='_',s=600)
+    axs[1].scatter(x=range(4),y=df_total.mean(),c="black", marker='_',s=500)
+    axs[2].scatter(x=range(4),y=df_tot_filter.mean(),c="black", marker='_',s=500)
+    axs[3].scatter(x=range(4),y=df_diam.mean(),c="black", marker='_',s=500)
+
+    axs[0].scatter(x=range(4),y=df_res.max(),c="black", marker='_',s=300)
+    axs[1].scatter(x=range(4),y=df_total.max(),c="black", marker='_',s=300)
+    axs[2].scatter(x=range(4),y=df_tot_filter.max(),c="black", marker='_',s=300)
+    axs[3].scatter(x=range(4),y=df_diam.max(),c="black", marker='_',s=300)
+
+    plt.tight_layout()
+    if save:
+        f.savefig('RewiredViolins.pdf', dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+def plot_violins_node_metrics_by_group(Gs, names, S, save=False, file_title='group_violins', fig_size=(6,8)):
+    
+    all_res = []
+    all_total_res = []
+    all_filtered_res = []
+    all_diam_res = []
+
+    for G in Gs:
+        res = ermet.effective_resistance_matrix(G)
+        all_res.append(squareform(res.round(5)))
+        all_total_res.append(ermet.node_total_er(res))
+        all_filtered_res.append(ermet.node_total_er(res, G, filtered=True))
+        all_diam_res.append(ermet.node_diameters(res))
+
+    df_res = pd.DataFrame(all_res).transpose()
+    df_total = pd.DataFrame(all_total_res).transpose()
+    df_tot_filter = pd.DataFrame(all_filtered_res).transpose()
+    df_diam = pd.DataFrame(all_diam_res).transpose()
+
+    df_res.columns = names
+    df_total.columns = names
+    df_tot_filter.columns = names
+    df_diam.columns = names
+
+    df_total['S'] = S
+    df_tot_filter['S'] = S
+    df_diam['S'] = S
+
+    df_total_M = df_total.melt(id_vars=['S'], value_vars=names,
+                   var_name='Method', value_name='Values')
+    df_tot_filter_M = df_tot_filter.melt(id_vars=['S'], value_vars=names,
+                   var_name='Method', value_name='Values')
+    df_diam_M = df_diam.melt(id_vars=['S'], value_vars=names,
+                   var_name='Method', value_name='Values')
+
+
+    f, axs = plt.subplots(2,2, figsize=fig_size)
+    axs = axs.ravel()
+
+    sns.violinplot(df_res, inner="box",  bw= 0.5, ax=axs[0], orient='v', palette='colorblind', cut=0, linewidth=0.7)
+    sns.violinplot(df_total_M, y='Values', x='Method', hue='S', ax=axs[1],
+                    inner = 'box', split=True, orient='v', scale="width",palette='colorblind')
+    sns.violinplot(df_tot_filter_M, y='Values', x='Method', hue='S', ax=axs[2],
+                   inner = 'box', split=True, orient='v', scale="width", palette='colorblind')
+    sns.violinplot(df_diam_M, y='Values', x='Method', hue='S', ax=axs[3],
+                   inner = 'box', split=True, orient='v', scale="width",palette='colorblind')
+
+    axs[0].set_title('$R_{uv}$')
+    axs[1].set_title('$Res_G(u)$')
+    axs[2].set_title('$Res_G(u, \mathcal{N})$')
+    axs[3].set_title('$\mathcal{R}_{diam}(u)$')
+
+    axs[0].set_xticklabels(axs[0].get_xticklabels(), fontsize=12, rotation=10)
+    axs[1].set_xticklabels(axs[1].get_xticklabels(), fontsize=12, rotation=10)
+    axs[2].set_xticklabels(axs[2].get_xticklabels(), fontsize=12, rotation=10)
+    axs[3].set_xticklabels(axs[3].get_xticklabels(), fontsize=12, rotation=10)
+
+    n_gr = len(Gs)
+    axs[0].scatter(x=range(n_gr),y=df_res.mean(),c="black", marker='_',s=600)
+    axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+    axs[2].scatter(x=range(n_gr),y=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+    axs[3].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+
+    axs[0].scatter(x=range(n_gr),y=df_res.max(),c="black", marker='_',s=300)
+    axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+    axs[2].scatter(x=range(n_gr),y=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+    axs[3].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+
+    plt.tight_layout()
+    if save:
+        f.savefig(file_title+'.pdf', dpi=300, bbox_inches='tight')
+    plt.show()
+
+
+
+def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, colorbar=False, node_size=1):
+    f, axs = plt.subplots(int(np.ceil(len(Gs)/2)), 2, figsize=(8,int(np.ceil(len(Gs)/2))*4))
+    options = {
+        "edge_color": 'grey',
+        "width": 0.5,
+        "edge_cmap": plt.cm.seismic,
+        "cmap": plt.cm.viridis,
+        "with_labels": False,
+        'pos':pos,
+        'font_color':'w'
+    }
+    
+    axs = axs.ravel()
+    aux=10
+    
+    ori_G = Gs[base_G]
+    ori_reff = ermet.effective_resistance_matrix(ori_G)
+    
+    for i, G in enumerate(Gs):
+        G_diff_edges = list(Gs[base_G].edges() ^ G.edges())
+        R = ermet.effective_resistance_matrix(G)
+        
+        if node_color is None:
+            node_color = ermet.node_total_er(ermet.effective_resistance_matrix(G))
+        elif type(node_color) == str:
+            if node_color=='total':
+                node_color = ermet.node_total_er(R)
+            elif node_color=='between':
+                node_color = ermet.node_total_er(R, G, filtered=True)
+            elif node_color=='diam':
+                node_color = ermet.diameters(R)
+        if i==base_G:
+            ori_node_color = node_color.copy()
+            if colorbar:
+                sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, 
+                                    norm=plt.Normalize(vmin=np.min(ori_node_color), vmax=np.max(ori_node_color)))
+
+                f.colorbar(sm, cax=axs[i], orientation='vertical')
+        
+        axs[i].set_title(names[i])
+        nx.draw(G, ax = axs[i], **options,
+            node_size = np.array([d+aux for n,d in G.degree()])*node_size,
+            node_color=node_color,
+            vmin =ori_node_color.min() , vmax=ori_node_color.max())
+        nx.draw_networkx_edges(G, edgelist = G_diff_edges, pos=pos, edge_color='orange', width=3, ax = axs[i])
+
+    for ax in axs:
+        ax.axis('off')   
+    plt.tight_layout()
+    plt.show()
