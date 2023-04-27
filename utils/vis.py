@@ -51,7 +51,9 @@ def plot_violins_node_metrics(df_res, df_total, df_tot_filter, df_diam, save=Fal
     plt.show()
 
 
-def plot_violins_node_metrics_by_group(Gs, names, S, save=False, file_title='group_violins', fig_size=(6,8)):
+def plot_violins_node_metrics_by_group(Gs, names, S, 
+                                       save=False, file_title='group_violins',
+                                       fig_size=(6,8), orient='v',plot_max_avg_lines=True):
     
     all_res = []
     all_total_res = []
@@ -60,7 +62,7 @@ def plot_violins_node_metrics_by_group(Gs, names, S, save=False, file_title='gro
 
     for G in Gs:
         res = ermet.effective_resistance_matrix(G)
-        all_res.append(squareform(res.round(5)))
+        all_res.append(squareform(res.round(6)))
         all_total_res.append(ermet.node_total_er(res))
         all_filtered_res.append(ermet.node_total_er(res, G, filtered=True))
         all_diam_res.append(ermet.node_diameters(res))
@@ -87,52 +89,192 @@ def plot_violins_node_metrics_by_group(Gs, names, S, save=False, file_title='gro
                    var_name='Method', value_name='Values')
 
 
-    f, axs = plt.subplots(2,2, figsize=fig_size)
+    f, axs = plt.subplots(1,4, figsize=fig_size, sharey=True)
     axs = axs.ravel()
 
-    sns.violinplot(df_res, inner="box",  bw= 0.5, ax=axs[0], orient='v', palette='colorblind', cut=0, linewidth=0.7)
-    sns.violinplot(df_total_M, y='Values', x='Method', hue='S', ax=axs[1],
-                    inner = 'box', split=True, orient='v', scale="width",palette='colorblind')
-    sns.violinplot(df_tot_filter_M, y='Values', x='Method', hue='S', ax=axs[2],
-                   inner = 'box', split=True, orient='v', scale="width", palette='colorblind')
-    sns.violinplot(df_diam_M, y='Values', x='Method', hue='S', ax=axs[3],
-                   inner = 'box', split=True, orient='v', scale="width",palette='colorblind')
+    if orient == 'v':
+        y='Values'
+        x='Method'
+    else:
+        y='Method'
+        x='Values'
+    
+    sns.violinplot(df_res, inner="box",  bw= 0.5, ax=axs[0], orient=orient, palette='colorblind', cut=0.1, linewidth=0.7)
+    sns.violinplot(df_total_M, y=y, x=x, hue='S', ax=axs[1],
+                    inner = 'box', split=True, orient=orient, scale="width",palette='colorblind', cut=0.1, linewidth=0.7)
+    sns.violinplot(df_diam_M, y=y, x=x, hue='S', ax=axs[2],
+                   inner = 'box', split=True, orient=orient, scale="width", palette='colorblind', cut=0.1, linewidth=0.7)
+    sns.violinplot(df_tot_filter_M, y=y, x=x, hue='S', ax=axs[3],
+                   inner = 'box', split=True, orient=orient, scale="width",palette='colorblind', cut=0.1, linewidth=0.7)
 
-    axs[0].set_title('$R_{uv}$')
-    axs[1].set_title('$Res_G(u)$')
-    axs[2].set_title('$Res_G(u, \mathcal{N})$')
-    axs[3].set_title('$\mathcal{R}_{diam}(u)$')
+    axs[0].set_title('All $R_{uv}$')
+    axs[1].set_title('$\mathsf{Res_G}(u)$')
+    axs[2].set_title('$\mathcal{R}_{diam}(u)$')
+    axs[3].set_title('$\mathsf{B_R}(u)$')
 
-    axs[0].set_xticklabels(axs[0].get_xticklabels(), fontsize=12, rotation=10)
-    axs[1].set_xticklabels(axs[1].get_xticklabels(), fontsize=12, rotation=10)
-    axs[2].set_xticklabels(axs[2].get_xticklabels(), fontsize=12, rotation=10)
-    axs[3].set_xticklabels(axs[3].get_xticklabels(), fontsize=12, rotation=10)
+    #Set the x limit of the third plot between 2 chosen values
+    #axs[3].set_xlim([1.99, 2.01])
+    #axs[3].set_xscale('log')
 
-    n_gr = len(Gs)
-    axs[0].scatter(x=range(n_gr),y=df_res.mean(),c="black", marker='_',s=600)
-    axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
-    axs[2].scatter(x=range(n_gr),y=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
-    axs[3].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+    
 
-    axs[0].scatter(x=range(n_gr),y=df_res.max(),c="black", marker='_',s=300)
-    axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='_',s=300)
-    axs[2].scatter(x=range(n_gr),y=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].max(),c="black", marker='_',s=300)
-    axs[3].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+    if orient=='v':
+        #axs[0].set_xticklabels(axs[0].get_xticklabels(), fontsize=12, rotation=10)
+        #axs[1].set_xticklabels(axs[1].get_xticklabels(), fontsize=12, rotation=10)
+        #axs[2].set_xticklabels(axs[2].get_xticklabels(), fontsize=12, rotation=10)
+        #axs[3].set_xticklabels(axs[3].get_xticklabels(), fontsize=12, rotation=10)
+        if plot_max_avg_lines:
+            n_gr = len(Gs)
+            axs[0].scatter(x=range(n_gr),y=df_res.mean(),c="black", marker='_',s=600)
+            axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+            axs[3].scatter(x=range(n_gr),y=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+            axs[2].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].mean(),c="black", marker='_',s=500)
+
+            axs[0].scatter(x=range(n_gr),y=df_res.max(),c="black", marker='_',s=300)
+            axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+            axs[3].scatter(x=range(n_gr),y=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+            axs[2].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+    else:
+        #axs[0].set_yticklabels(axs[0].get_yticklabels(), fontsize=12, rotation=10)
+        #axs[1].set_yticklabels(axs[1].get_yticklabels(), fontsize=12, rotation=10)
+        #axs[2].set_yticklabels(axs[2].get_yticklabels(), fontsize=12, rotation=10)
+        #axs[3].set_yticklabels(axs[3].get_yticklabels(), fontsize=12, rotation=10)
+        axs[0].set_ylabel('')
+        axs[1].set_ylabel('')
+        axs[2].set_ylabel('')
+        axs[3].set_ylabel('')
+        axs[0].set_xlabel('')
+        axs[1].set_xlabel('')
+        axs[2].set_xlabel('')
+        axs[3].set_xlabel('')
+        axs[1].get_legend().get_texts()[0].set_text('Others')
+        axs[1].get_legend().get_texts()[1].set_text('Vulnerable')
+        axs[2].get_legend().remove()
+        axs[3].get_legend().remove()
+
+        if plot_max_avg_lines:
+            n_gr = len(Gs)
+            axs[0].scatter(y=range(n_gr),x=df_res.mean(),c="black", marker='|',s=600)
+            axs[1].scatter(y=range(n_gr),x=df_total.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='|',s=500)
+            axs[3].scatter(y=range(n_gr),x=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].mean(),c="black", marker='|',s=500)
+            axs[2].scatter(y=range(n_gr),x=df_diam.loc[:, ~df_diam.columns.isin(['S'])].mean(),c="black", marker='|',s=500)
+
+            axs[0].scatter(y=range(n_gr),x=df_res.max(),c="black", marker='|',s=300)
+            axs[1].scatter(y=range(n_gr),x=df_total.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='|',s=300)
+            axs[3].scatter(y=range(n_gr),x=df_tot_filter.loc[:, ~df_tot_filter.columns.isin(['S'])].max(),c="black", marker='|',s=300)
+            axs[2].scatter(y=range(n_gr),x=df_diam.loc[:, ~df_diam.columns.isin(['S'])].max(),c="black", marker='|',s=300)
 
     plt.tight_layout()
     if save:
         f.savefig(file_title+'.pdf', dpi=300, bbox_inches='tight')
     plt.show()
 
+    return f, axs
 
 
-def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, colorbar=False, node_size=1):
-    f, axs = plt.subplots(int(np.ceil(len(Gs)/2)), 2, figsize=(8,int(np.ceil(len(Gs)/2))*4))
+def plot_violins_node_metrics_by_group2(Gs, names, S, save=False, file_title='group_violins', fig_size=(6,8), orient='v'):
+    
+    all_res = []
+    all_total_res = []
+    all_diam_res = []
+
+    for G in Gs:
+        res = ermet.effective_resistance_matrix(G)
+        all_res.append(squareform(res.round(5)))
+        all_total_res.append(ermet.node_total_er(res))
+        all_diam_res.append(ermet.node_diameters(res))
+
+    df_res = pd.DataFrame(all_res).transpose()
+    df_total = pd.DataFrame(all_total_res).transpose()
+    df_diam = pd.DataFrame(all_diam_res).transpose()
+
+    df_res.columns = names
+    df_total.columns = names
+    df_diam.columns = names
+
+    df_total['S'] = S
+    df_diam['S'] = S
+
+    df_total_M = df_total.melt(id_vars=['S'], value_vars=names,
+                   var_name='Method', value_name='Values')
+    df_diam_M = df_diam.melt(id_vars=['S'], value_vars=names,
+                   var_name='Method', value_name='Values')
+
+
+    MOSAIC="""
+    00
+    12
+    """
+    f,axs_dict = plt.subplot_mosaic(MOSAIC, figsize=fig_size, gridspec_kw={'width_ratios': [1, 1], 'height_ratios': [.6, 1]})
+    axs = f.get_axes()
+
+    if orient == 'v':
+        y='Values'
+        x='Method'
+    else:
+        y='Method'
+        x='Values'
+    
+    sns.violinplot(df_res, inner="box",  bw= 0.5, ax=axs[0], orient=orient, palette='colorblind', cut=0, linewidth=0.3)
+    sns.violinplot(df_total_M, y=y, x=x, hue='S', ax=axs[1], cut=0, linewidth=0.3,
+                    inner = 'box', split=False, orient=orient, scale="width",palette='colorblind')
+    sns.violinplot(df_diam_M, y=y, x=x, hue='S', ax=axs[2], cut=0, linewidth=0.3,
+                   inner = 'box', split=False, orient=orient, scale="width",palette='colorblind')
+
+    axs[0].set_title('$R_{uv}$')
+    axs[1].set_title('$Res_G(u)$')
+    axs[2].set_title('$\mathcal{R}_{diam}(u)$')
+
+    if orient=='v':
+        axs[0].set_xticklabels(axs[0].get_xticklabels(), fontsize=12, rotation=10)
+        axs[1].set_xticklabels(axs[1].get_xticklabels(), fontsize=12, rotation=10)
+        axs[2].set_xticklabels(axs[2].get_xticklabels(), fontsize=12, rotation=10)
+
+        n_gr = len(Gs)
+        axs[0].scatter(x=range(n_gr),y=df_res.mean(),c="black", marker='_',s=300)
+        axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='_',s=300)
+        axs[2].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].mean(),c="black", marker='_',s=300)
+
+        axs[0].scatter(x=range(n_gr),y=df_res.max(),c="black", marker='_',s=300)
+        axs[1].scatter(x=range(n_gr),y=df_total.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+        axs[2].scatter(x=range(n_gr),y=df_diam.loc[:, ~df_diam.columns.isin(['S'])].max(),c="black", marker='_',s=300)
+    elif orient=='h':
+        axs[0].set_yticklabels(axs[0].get_yticklabels(), fontsize=12, rotation=10)
+        axs[1].set_yticklabels(axs[1].get_yticklabels(), fontsize=12, rotation=10)
+        axs[2].set_yticklabels(axs[2].get_yticklabels(), fontsize=12, rotation=10)
+
+        n_gr = len(Gs)
+        axs[0].scatter(y=range(n_gr),x=df_res.mean(),c="black", marker='|',s=300)
+        axs[1].scatter(y=range(n_gr),x=df_total.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='|',s=300)
+        axs[2].scatter(y=range(n_gr),x=df_diam.loc[:, ~df_total.columns.isin(['S'])].mean(),c="black", marker='|',s=300)
+
+        axs[0].scatter(y=range(n_gr),x=df_res.max(),c="black", marker='|',s=300)
+        axs[1].scatter(y=range(n_gr),x=df_total.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='|',s=300)
+        axs[2].scatter(y=range(n_gr),x=df_diam.loc[:, ~df_total.columns.isin(['S'])].max(),c="black", marker='|',s=300)
+
+    axs[2].axes.get_yaxis().set_ticks([])
+    #Remove ylabl from axs[2]
+    axs[0].set_ylabel('')
+    axs[1].set_ylabel('')
+    axs[2].set_ylabel('')
+    axs[1].get_legend().remove()
+
+    plt.tight_layout()
+    if save:
+        f.savefig(file_title+'.pdf', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    return f, axs
+
+def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, colorbar=False, node_size=1, show_base = True):
+    num_vis_G = int(np.ceil(len(Gs)/2)) if show_base else int(np.ceil((len(Gs)-1)/2))
+    f, axs = plt.subplots(num_vis_G, 2, figsize=(7,num_vis_G*4))
+    #f, axs = plt.subplots(1, 4, figsize=(14,5))
     options = {
         "edge_color": 'grey',
         "width": 0.5,
         "edge_cmap": plt.cm.seismic,
-        "cmap": plt.cm.viridis,
+        "cmap": plt.cm.seismic,
         "with_labels": False,
         'pos':pos,
         'font_color':'w'
@@ -142,9 +284,10 @@ def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, co
     aux=10
     
     ori_G = Gs[base_G]
-    ori_reff = ermet.effective_resistance_matrix(ori_G)
+    #ori_reff = ermet.effective_resistance_matrix(ori_G)
     
     for i, G in enumerate(Gs):
+        idx = i if show_base else i-1
         G_diff_edges = list(Gs[base_G].edges() ^ G.edges())
         R = ermet.effective_resistance_matrix(G)
         
@@ -163,16 +306,18 @@ def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, co
                 sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, 
                                     norm=plt.Normalize(vmin=np.min(ori_node_color), vmax=np.max(ori_node_color)))
 
-                f.colorbar(sm, cax=axs[i], orientation='vertical')
+                f.colorbar(sm, cax=axs[idx], orientation='vertical')
         
-        axs[i].set_title(names[i])
-        nx.draw(G, ax = axs[i], **options,
-            node_size = np.array([d+aux for n,d in G.degree()])*node_size,
-            node_color=node_color,
-            vmin =ori_node_color.min() , vmax=ori_node_color.max())
-        nx.draw_networkx_edges(G, edgelist = G_diff_edges, pos=pos, edge_color='orange', width=3, ax = axs[i])
+        if (i==base_G and show_base) or i!=base_G:
+            axs[idx].set_title(names[i])
+            nx.draw(G, ax = axs[idx], **options,
+                node_size = np.array([d+aux for n,d in G.degree()])*node_size,
+                node_color=node_color,
+                vmin =ori_node_color.min() , vmax=ori_node_color.max())
+            nx.draw_networkx_edges(G, edgelist = G_diff_edges, pos=pos, edge_color='orange', width=3, ax = axs[idx])
 
     for ax in axs:
         ax.axis('off')   
     plt.tight_layout()
     plt.show()
+    return f
