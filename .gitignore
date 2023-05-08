@@ -129,3 +129,11 @@ dmypy.json
 .pyre/
 
 figs/
+
+#ignore subfolders in data folder but no ignore files
+data/*
+!data/*.md
+
+
+
+
