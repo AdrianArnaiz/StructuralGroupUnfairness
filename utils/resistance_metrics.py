@@ -13,6 +13,16 @@ def effective_resistance_matrix(network):
     u = np.ones(zeta.shape[0])
     return np.array((np.matrix(u).T * zeta) + (np.matrix(zeta).T * u) - (2 * Q))
 
+def effective_resistance_matrix_3(network):
+    """
+    Res \in R^{n x n} = (1^T * diag(L^+)) + (diag(L^+)^T * 1) - (2 * L^+)
+    """
+    L = csgraph.laplacian(np.matrix(nx.adjacency_matrix(network).todense().astype(float)), normed = False)
+    pinv = np.linalg.pinv(L)
+    pinv_diagonal = np.diagonal(pinv)
+    resistance_matrix = pinv_diagonal.unsqueeze(0) + pinv_diagonal.unsqueeze(1) - 2*pinv
+    return resistance_matrix
+
 def effective_resistance_matrix_2(network):
     """Calculate effective resistance for each node pair in the network.
     Res(u,v) \in R^1 = (L + 1/n )^+[i,i] + (L + 1/n )^+[j,j] - 2*(L + 1/n )^+[i,j] 
@@ -65,6 +75,11 @@ def total_effective_resistance(CT, G=None, filtered=False, mean=False):
 
     Returns:
         _type_: _description_
+
+    
+    ones = np.ones((R.shape[0],))
+    # Perform the operation
+    ones.dot(R).dot(ones.T)
     """
     if not filtered:
         pairwise_resistances = CT[np.triu_indices(np.sum(CT.shape[0]),k=1)].ravel().copy()

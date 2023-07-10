@@ -267,7 +267,7 @@ def plot_violins_node_metrics_by_group2(Gs, names, S, save=False, file_title='gr
 
     return f, axs
 
-def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, colorbar=False, node_size=1, show_base = True):
+def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, colorbar=False, node_size=1, show_base = True, show_plot=True):
     num_vis_G = int(np.ceil(len(Gs)/2)) if show_base else int(np.ceil((len(Gs)-1)/2))
     f, axs = plt.subplots(num_vis_G, 2, figsize=(7,num_vis_G*4))
     #f, axs = plt.subplots(1, 4, figsize=(14,5))
@@ -314,13 +314,16 @@ def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, co
             nx.draw(G, ax = axs[idx], **options,
                 node_size = np.array([d+aux for n,d in G.degree()])*node_size,
                 node_color=node_color,
+                #linewidths=0.1, edgecolors='white',
                 vmin =ori_node_color.min() , vmax=ori_node_color.max())
-            nx.draw_networkx_edges(G, edgelist = G_diff_edges, pos=pos, edge_color='orange', width=3, ax = axs[idx])
+            nx.draw_networkx_edges(G, edgelist = G_diff_edges, pos=pos, edge_color='orange', width=2, ax = axs[idx])
 
     for ax in axs:
         ax.axis('off')   
     plt.tight_layout()
-    plt.show()
+
+    if show_plot:
+        plt.show()
     return f
 
 

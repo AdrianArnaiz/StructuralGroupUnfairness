@@ -134,6 +134,8 @@ figs/
 data/*
 !data/*.md
 
+GENVD/*
+GTR/*
 
 
 

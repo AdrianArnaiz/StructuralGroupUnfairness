@@ -1,7 +1,7 @@
 import numpy as np
 
 def process_facebook(folder_link, return_tensor_sparse=True):
-    """Code from "PyGDebias: Graph Datasets and Fairness-Aware Graph Mining Algorithms". 
+    """Code based on "PyGDebias: Graph Datasets and Fairness-Aware Graph Mining Algorithms". 
     Dong, Yushun and Ma, Jing and Chen, Chen and Li, Jundong
     https://github.com/yushundong/PyGDebias/blob/main/dataloading.py
     """
