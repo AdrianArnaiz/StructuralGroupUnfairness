@@ -20,44 +20,89 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
 
 
-N_LINKS = 50
-dataset = "facebook"
+N_LINKS = 2
+dataset = "pokecz"
+
 DEEPWALK_baseline = True
+SAVE_GRAPH = True
 DRAW_GRAPH = False
+DRAW_GRAPH_COMPARISON = False
 
 
 exp_time = time.strftime('%d_%m_%y__%H_%M')
 output_path_folder = osp.join(osp.dirname(osp.realpath(__file__)), 'results', dataset+"_"+str(N_LINKS)+"lnks_"+exp_time)
 os.mkdir(output_path_folder)
+os.mkdir(osp.join(output_path_folder, 'metrics'))
 os.mkdir(osp.join(output_path_folder, 'figs'))
 
+if SAVE_GRAPH:
+    os.mkdir(osp.join(output_path_folder, 'graphs'))
+
+##################################################
 # Load graph
+
 if dataset == "facebook":
-    adj, features, labels, idx_train, idx_val, idx_test, sens = loader.process_facebook('data/facebook')
+    adj, _, _, _, _, _, sens = loader.process_facebook('data/facebook')
     # Depending Netx version
     #FB = nx.from_numpy_matrix(adj)
     FB = nx.from_numpy_array(adj)
+    FB = nx.relabel_nodes(FB, {node:ix for ix, node in enumerate(FB.nodes())}, copy=True)
 
     Gcc = sorted(nx.connected_components(FB), key=len, reverse=True)
-    G = nx.Graph(FB.subgraph(Gcc[0]))
+    G = nx.Graph(FB.subgraph(Gcc[0]).copy())
 
     sensitive_group = sens[np.array(list(Gcc[0]))]
 
     index_to_node = {index: node for index, node in enumerate(G.nodes())}
     G = nx.relabel_nodes(G, {node:ix for ix, node in enumerate(G.nodes())}, copy=True)
 
-    G.number_of_nodes(), G.number_of_edges(), (len(sens[sens==1]), len(sens[sens==0]))
+elif dataset == "cat":
+    G = nx.Graph()
+    G.add_edges_from([(0,1),(0,3),(1,2),(1,3),(1,4),(2,4),(2,11),(3,4),(3,5),
+                  (4,5),(5,6),(5,7),(6,7),(6,8),(6,9), (7,9),(7,10),(8,9),
+                  (9,10),(10,15),(11,12),(12,13),(13,14),(14,15),(0,11),(8,15)])
+    sensitive_group = np.array([0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0])
+
 elif dataset == "twitter":
     pass
 elif dataset == "emailarenas":
     pass
-elif dataset == "pokec-z":
-    pass
-elif dataset == "pokec-n":
-    pass
+elif dataset == "pokecz":
+    df = pd.read_csv(r'data\pokec_regions\region_job.csv', index_col=0)
+    pokek = nx.read_edgelist(r'data\pokec_regions\region_job_relationship.txt')
+    pokek = nx.relabel_nodes(pokek, {node:int(node) for node in pokek.nodes()}, copy=True) #str to int
+    nx.set_node_attributes(pokek, dict(df['gender']), name='sens')
+    nx.set_node_attributes(pokek, dict(df['region']), name='region')
+
+    Gcc = sorted(nx.connected_components(pokek), key=len, reverse=True)
+    G = nx.Graph(pokek.subgraph(Gcc[0]).copy())
+    del pokek
+    del df
+    G = nx.relabel_nodes(G, {node:ix for ix, node in enumerate(G.nodes())}, copy=True) # from 0 to n: simplify adding edges
+
+    sensitive_group = nx.get_node_attributes(G, 'sens')
+    # sensitive group to numpy array
+    sensitive_group = np.array(list(sensitive_group.values()))
+
+elif dataset == "pokecn":
+    df = pd.read_csv(r'data\pokec_regions\region_job_2.csv', index_col=0)
+    pokek = nx.read_edgelist(r'data\pokec_regions\region_job_2_relationship.txt')
+    pokek = nx.relabel_nodes(pokek, {node:int(node) for node in pokek.nodes()}, copy=True) #str to int
+    nx.set_node_attributes(pokek, dict(df['gender']), name='sens')
+    nx.set_node_attributes(pokek, dict(df['region']), name='region')
+
+    Gcc = sorted(nx.connected_components(pokek), key=len, reverse=True)
+    G = nx.Graph(pokek.subgraph(Gcc[0]).copy())
+    del pokek
+    del df
+    G = nx.relabel_nodes(G, {node:ix for ix, node in enumerate(G.nodes())}, copy=True) # from 0 to n: simplify adding edges
+
+    sensitive_group = nx.get_node_attributes(G, 'sens')
+    # sensitive group to numpy array
+    sensitive_group = np.array(list(sensitive_group.values()))
 elif dataset == "SBM":
     sizes = [40, 40, 15, 15]
-    #sizes = [150, 150, 50, 50]
+    sizes = [150, 150, 50, 50]
     c1 = 0.8
     c2 = 0.8
     c3 = 0.8 
@@ -90,6 +135,7 @@ elif dataset == "SBM":
 elif dataset == "karate":
     G = nx.karate_club_graph()
     sensitive_group = np.ones(len(G.nodes()))
+    sensitive_group[-4:] = 0
 
 R = ermet.effective_resistance_matrix(G)
 
@@ -145,6 +191,34 @@ if DEEPWALK_baseline:
 
 
 ############################################
+## Save graphs
+
+if SAVE_GRAPH:
+    if DEEPWALK_baseline:
+        graph_list = [G, G_dw_s, G_s, G_as, G_dw_w, G_w, G_aw]
+        names=['Orig','St-DW','Strong','St-AA', 'W-DW','ER-L','ERA-L']
+    else:
+        graph_list = [G, G_s, G_as, G_w, G_aw]
+        names=['Orig' ,'Strong', 'St-AA','ER-L','ERA-L']
+
+    G_edges_ori = set(G.edges())
+    for i, gg in enumerate(graph_list):
+        #Add attribute in the new edges (edges different to the original graph G)
+        G_edge_diff = G_edges_ori ^ gg.edges()
+        d_ori = dict(zip((G_edges_ori), [0]*(len(G_edges_ori))))
+        d_new = dict(zip((G_edge_diff), [1]*(len(G_edge_diff))))
+        nx.set_edge_attributes(gg, d_ori, name='new')
+        nx.set_edge_attributes(gg, d_new, name='new')
+
+        if 'sens' not in G.nodes[0].keys():
+            d_sens = dict(zip(gg.nodes(), sensitive_group))
+            nx.set_node_attributes(gg, d_sens, name='sens')
+
+        #nx.write_gpickle(gg, f'{output_path_folder}{os.sep}graphs{os.sep}{dataset}-{names[i]}.gpickle')
+        nx.write_gexf(gg, f'{output_path_folder}{os.sep}graphs{os.sep}{dataset}-{names[i]}.gexf')
+
+
+############################################
 # Draw original graph
 
 if DRAW_GRAPH:
@@ -164,8 +238,7 @@ if DRAW_GRAPH:
     f.savefig(f'{output_path_folder}{os.sep}figs{os.sep}{dataset}-original-graph.pdf', dpi=300, bbox_inches='tight', transparent=True)
 
 
-############################################
-## Save graphs
+
 
 ############################################
 ## Get evolution plots
@@ -211,7 +284,6 @@ for metric in metrics:
                   ]
     
     #plt.legend(handles=legend_elements, bbox_to_anchor=(1.0, 0.9), loc="upper left", fontsize=9)
-    #plt.ylabel(metric_name[metric])
     plt.xlabel('# of links added')
     plt.title(metric_name[metric])
     plt.tight_layout()
@@ -220,29 +292,43 @@ for metric in metrics:
 ############################################
 ## Plot rewired graphs
 
-if DRAW_GRAPH:
+if DRAW_GRAPH_COMPARISON:
 
     if DEEPWALK_baseline:
-        graph_list = [G, G_s, G_dw_s, G_as, G_w, G_dw_w, G_aw]
-        names=['Ori' ,'Strong', 'DeepWalk - Strong', 'Strong AA', 'ER-L', 'DeepWalk - Weak', 'ERA-L']
+        graph_list = [G, G_dw_s, G_s, G_as, G_dw_w, G_w, G_aw]
+        names=['Orig','St-DW','Strong','St-AA', 'W-DW','ER-L','ERA-L']
     else:
         graph_list = [G, G_s, G_as, G_w, G_aw]
-        names=['Ori' ,'Strong', 'Strong AA','ER-L','ERA-L']
+        names=['Ori' ,'Strong', 'St-AA','ER-L','ERA-L']
     
     f = vis.print_several_graphs(graph_list,
                         node_color=sensitive_group,
                         base_G=0,
                         names=names,
-                        node_size=1,
+                        node_size=0.2,
                         pos=pos,
                         show_plot=False)
     f.savefig(f'{output_path_folder}{os.sep}figs{os.sep}{dataset}-rewired-graphs.pdf', dpi=300, bbox_inches='tight', transparent=True)
 
 
-    """vis.compare_graphs([G, G_s, G_w, G_aw, G_as],
-               graph_names=['Original', 'Strong', 'St-AA', 'ER-L', 'ERA-L',], 
-              edge_highlight=True, node_size=0.2,
-              save=False)"""
+    f = vis.compare_graphs(graph_list,
+                       graph_names=names, 
+                       edge_highlight=True, node_size=0.2,
+                       save=False, show_plot=False, return_fig=True)
+    f.savefig(f'{output_path_folder}{os.sep}figs{os.sep}{dataset}-rewired-graphs-metrics.pdf', dpi=300, bbox_inches='tight', transparent=True)
+
+
+
+#########################################
+## Violinplots
+
+f,_ = vis.plot_violins_node_metrics_by_group(graph_list,
+                                             names=names,
+                                             S=sensitive_group,
+                                             orient='h',
+                                             plot_max_avg_lines=True,
+                                             fig_size=(12,4), show_plot=False)
+f.savefig(f'{output_path_folder}{os.sep}figs{os.sep}{dataset}-violinplots.pdf', dpi=300, bbox_inches='tight', transparent=True)
 
 
 ############################################
@@ -284,7 +370,6 @@ orig_metric_df = pd.DataFrame.from_dict({(i,j): orig_metric_dict[i][j]
                        orient='index')
 
 #get DW final metrics
-print(final_metric_df.index)
 if DEEPWALK_baseline:
     R = ermet.effective_resistance_matrix(G_dw_s)
     final_metric_df.loc[('ST-DW','total'), 0] = ermet.group_total_reff(R, sensitive_group)[0]
@@ -304,7 +389,6 @@ if DEEPWALK_baseline:
                                                                                 G_dw_s,
                                                                                 sensitive_group)[1]
 
-    print(final_metric_df)
     R = ermet.effective_resistance_matrix(G_dw_w)
     final_metric_df.loc[('w-DW','total'), 0] = ermet.group_total_reff(R, sensitive_group)[0]
     final_metric_df.loc[('w-DW','total'), 1] = ermet.group_total_reff(R, sensitive_group)[1]
@@ -323,7 +407,8 @@ if DEEPWALK_baseline:
                                                                                 G_dw_w,
                                                                                 sensitive_group)[1]
 
-
+orig_metric_df.to_csv(f'{output_path_folder}{os.sep}metrics{os.sep}Original_metrics.csv')
+final_metric_df.to_csv(f'{output_path_folder}{os.sep}metrics{os.sep}Final_metrics.csv')
 models = ['ST-DW','strong','St-AA','w-DW','ER-L','ERA-L'] if DEEPWALK_baseline else ['strong','St-AA','ER-L','ERA-L']
 table = final_metric_df -orig_metric_df
 
@@ -332,19 +417,21 @@ table = table[np.in1d(table.index.get_level_values(1), ['total', 'diam', 'avg_be
 # Discriminated group
 group1_df = pd.DataFrame(table[1]).reset_index().pivot(index='level_0', columns='level_1')[1]
 group1_df = group1_df.loc[models]
-group1_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}Improvement_G1.csv')
+group1_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}metrics{os.sep}Improvement_G1.csv')
 # General group
 group0_df = pd.DataFrame(table[0]).reset_index().pivot(index='level_0', columns='level_1')[0]
 group0_df = group0_df.loc[models]
-group0_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}Improvement_G0.csv')
+group0_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}metrics{os.sep}Improvement_G0.csv')
 
 # Relative improvement
 table = ((final_metric_df -orig_metric_df)/orig_metric_df)*100
 # Discriminated group
 group1_df = pd.DataFrame(table[1]).reset_index().pivot(index='level_0', columns='level_1')[1]
 group1_df = group1_df.loc[models]
-group1_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}Improvement_relative_G1.csv')
+group1_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}metrics{os.sep}Improvement_relative_G1.csv')
 # General group
 group0_df = pd.DataFrame(table[0]).reset_index().pivot(index='level_0', columns='level_1')[0]
 group0_df = group0_df.loc[models]
-group0_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}Improvement_relative_G0.csv')
+group0_df[['total', 'diam', 'avg_bet', 'std_bet']].to_csv(f'{output_path_folder}{os.sep}metrics{os.sep}Improvement_relative_G0.csv')
+
+

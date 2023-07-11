@@ -54,7 +54,7 @@ def plot_violins_node_metrics(df_res, df_total, df_tot_filter, df_diam, save=Fal
 
 def plot_violins_node_metrics_by_group(Gs, names, S, 
                                        save=False, file_title='group_violins',
-                                       fig_size=(6,8), orient='v',plot_max_avg_lines=True):
+                                       fig_size=(6,8), orient='v',plot_max_avg_lines=True, show_plot=True):
     
     all_res = []
     all_total_res = []
@@ -168,7 +168,9 @@ def plot_violins_node_metrics_by_group(Gs, names, S,
     plt.tight_layout()
     if save:
         f.savefig(file_title+'.pdf', dpi=300, bbox_inches='tight')
-    plt.show()
+    
+    if show_plot:
+        plt.show()
 
     return f, axs
 
@@ -271,6 +273,9 @@ def print_several_graphs(Gs, node_color=None, base_G=0, names=None, pos=None, co
     num_vis_G = int(np.ceil(len(Gs)/2)) if show_base else int(np.ceil((len(Gs)-1)/2))
     f, axs = plt.subplots(num_vis_G, 2, figsize=(7,num_vis_G*4))
     #f, axs = plt.subplots(1, 4, figsize=(14,5))
+    if pos is None:
+        pos = nx.kamada_kawai_layout(Gs[base_G])
+
     options = {
         "edge_color": 'grey',
         "width": 0.5,
@@ -607,7 +612,7 @@ def graph_effective_resistance_metrics(G, pos=None, node_idx=None, filtered=Fals
     plt.show()
 
 
-def compare_graphs(graph_list, graph_names=None, pos=None, edge_highlight=False, node_size=5, save=False):
+def compare_graphs(graph_list, graph_names=None, pos=None, edge_highlight=False, node_size=5, save=False, show_plot=True, return_fig=False):
     
     ori_G = graph_list[0]
     original_res = ermet.effective_resistance_matrix(ori_G)
@@ -641,7 +646,7 @@ def compare_graphs(graph_list, graph_names=None, pos=None, edge_highlight=False,
     }
     
     axs[0][1].set_title("$Res_G(u)$", fontsize=16)
-    axs[0][2].set_title('\n'+'\mathsf{B_R}(u)$', fontsize=16)
+    axs[0][2].set_title('\n'+'$\mathsf{B_R}(u)$', fontsize=16)
     axs[0][3].set_title('$\mathcal{R}_{diam}(u)$', fontsize=16)
     
 
@@ -706,6 +711,7 @@ def compare_graphs(graph_list, graph_names=None, pos=None, edge_highlight=False,
     cbar = plt.colorbar(sm, ax=axs[:,1], shrink=0.5)
     cbar.ax.tick_params(labelsize=12)
     cbar.outline.set_linewidth(0)
+
         
     sm = plt.cm.ScalarMappable(cmap=plt.cm.viridis, 
                                 norm=plt.Normalize(vmin=np.min(ori_nodes_betwn), 
@@ -726,4 +732,7 @@ def compare_graphs(graph_list, graph_names=None, pos=None, edge_highlight=False,
     #f.tight_layout()
     if save:
         f.savefig('nodemetricsexample.pdf', dpi=300, bbox_inches='tight')
-    plt.show()
+    if show_plot:
+        plt.show()
+    if return_fig:
+        return f
