@@ -20,16 +20,16 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import FormatStrFormatter
 
 
-N_LINKS = 2
-dataset = "pokecz"
+N_LINKS = 10
+dataset = "SBM"
 
 DEEPWALK_baseline = True
 SAVE_GRAPH = True
-DRAW_GRAPH = False
-DRAW_GRAPH_COMPARISON = False
+DRAW_GRAPH = True
+DRAW_GRAPH_COMPARISON = True
 
-
-exp_time = time.strftime('%d_%m_%y__%H_%M')
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Create Folders")
+exp_time = time.strftime('%d_%m_%y__%H_%M_%S')
 output_path_folder = osp.join(osp.dirname(osp.realpath(__file__)), 'results', dataset+"_"+str(N_LINKS)+"lnks_"+exp_time)
 os.mkdir(output_path_folder)
 os.mkdir(osp.join(output_path_folder, 'metrics'))
@@ -40,7 +40,7 @@ if SAVE_GRAPH:
 
 ##################################################
 # Load graph
-
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Load Graph {dataset}")
 if dataset == "facebook":
     adj, _, _, _, _, _, sens = loader.process_facebook('data/facebook')
     # Depending Netx version
@@ -68,8 +68,8 @@ elif dataset == "twitter":
 elif dataset == "emailarenas":
     pass
 elif dataset == "pokecz":
-    df = pd.read_csv(r'data\pokec_regions\region_job.csv', index_col=0)
-    pokek = nx.read_edgelist(r'data\pokec_regions\region_job_relationship.txt')
+    df = pd.read_csv(f'data{os.sep}pokec_regions{os.sep}region_job.csv', index_col=0)
+    pokek = nx.read_edgelist(f'data{os.sep}pokec_regions{os.sep}region_job_relationship.txt')
     pokek = nx.relabel_nodes(pokek, {node:int(node) for node in pokek.nodes()}, copy=True) #str to int
     nx.set_node_attributes(pokek, dict(df['gender']), name='sens')
     nx.set_node_attributes(pokek, dict(df['region']), name='region')
@@ -85,8 +85,8 @@ elif dataset == "pokecz":
     sensitive_group = np.array(list(sensitive_group.values()))
 
 elif dataset == "pokecn":
-    df = pd.read_csv(r'data\pokec_regions\region_job_2.csv', index_col=0)
-    pokek = nx.read_edgelist(r'data\pokec_regions\region_job_2_relationship.txt')
+    df = pd.read_csv(f'data{os.sep}pokec_regions{os.sep}region_job_2.csv', index_col=0)
+    pokek = nx.read_edgelist(f'data{os.sep}pokec_regions{os.sep}region_job_2_relationship.txt')
     pokek = nx.relabel_nodes(pokek, {node:int(node) for node in pokek.nodes()}, copy=True) #str to int
     nx.set_node_attributes(pokek, dict(df['gender']), name='sens')
     nx.set_node_attributes(pokek, dict(df['region']), name='region')
@@ -115,7 +115,7 @@ elif dataset == "SBM":
     c3_c4 = 0.02
 
     group_by_com = [0,0,1,0]
-    noises = [0.05,0.05,0,0]
+    noises = [0,0,0,0]
     #noises = [0,0,0,0]
     probs = [[c1, c1_c2, c1_c3, c1_c4],
             [c1_c2, c2, c2_c3, c2_c4],
@@ -137,8 +137,10 @@ elif dataset == "karate":
     sensitive_group = np.ones(len(G.nodes()))
     sensitive_group[-4:] = 0
 
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - compute original effective resistance")
 R = ermet.effective_resistance_matrix(G)
 
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - compute initial metrics based on R")
 # Get initial metrics
 init_total= ermet.group_total_reff(R, sensitive_group)
 init_diam= ermet.group_reff_diam(R, sensitive_group)
@@ -154,7 +156,7 @@ ori_metric_dict = {'total':init_total,
                    'avg_bet':init_avg_bet,
                    'std_bet':init_std_bet}
 
-
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Add links")
 Graphs, data = rew.add_links(G, N_LINKS, sensitive_group)
 G_s, G_w, G_aw, G_as = Graphs
 d_s, d_w, d_aw, d_as = data
@@ -162,7 +164,7 @@ d_s, d_w, d_aw, d_as = data
 assert G.number_of_edges()+1+N_LINKS==G_w.number_of_edges()
 assert G_s.number_of_edges()==G_w.number_of_edges()==G_aw.number_of_edges()==G_as.number_of_edges()
 
-
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Add DW links")
 ############################################
 ## Compute DeepWalk baseline
 if DEEPWALK_baseline:
@@ -192,8 +194,8 @@ if DEEPWALK_baseline:
 
 ############################################
 ## Save graphs
-
 if SAVE_GRAPH:
+    print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Save graphs")
     if DEEPWALK_baseline:
         graph_list = [G, G_dw_s, G_s, G_as, G_dw_w, G_w, G_aw]
         names=['Orig','St-DW','Strong','St-AA', 'W-DW','ER-L','ERA-L']
@@ -222,6 +224,7 @@ if SAVE_GRAPH:
 # Draw original graph
 
 if DRAW_GRAPH:
+    print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Draw graphs")
     pos= nx.kamada_kawai_layout(G)
     f, axs = plt.subplots(1, figsize=(5,4))
     options = {
@@ -242,7 +245,7 @@ if DRAW_GRAPH:
 
 ############################################
 ## Get evolution plots
-
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Save evolution metrics plots")
 methods = ['strong', 'ER-L', 'ERA-L', 'St-AA']
 colors = {'strong': 'red', 'ER-L':'blue', 'ERA-L':'green','St-AA':'orange'}
 metrics = ['total', 'diam', 'avg_diam', 'max_bet', 'avg_bet', 'std_bet']
@@ -293,7 +296,7 @@ for metric in metrics:
 ## Plot rewired graphs
 
 if DRAW_GRAPH_COMPARISON:
-
+    print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Draw rewired graphs")
     if DEEPWALK_baseline:
         graph_list = [G, G_dw_s, G_s, G_as, G_dw_w, G_w, G_aw]
         names=['Orig','St-DW','Strong','St-AA', 'W-DW','ER-L','ERA-L']
@@ -321,7 +324,7 @@ if DRAW_GRAPH_COMPARISON:
 
 #########################################
 ## Violinplots
-
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Draw violinplots last metrics")
 f,_ = vis.plot_violins_node_metrics_by_group(graph_list,
                                              names=names,
                                              S=sensitive_group,
@@ -333,7 +336,7 @@ f.savefig(f'{output_path_folder}{os.sep}figs{os.sep}{dataset}-violinplots.pdf', 
 
 ############################################
 ## Get metric tables
-
+print(f"[{time.strftime('%d_%m_%y__%H_%M_%S')}] - Get metric tables")
 #get last iteration from effres based methods
 final_result_dict = {}
 
