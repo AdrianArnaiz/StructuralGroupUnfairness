@@ -1,6 +1,8 @@
 import numpy as np
 import networkx as nx
 from scipy.sparse import csgraph
+import torch
+import torch_geometric as pyg
 
 
 def effective_resistance_matrix(network):
@@ -33,7 +35,7 @@ def effective_resistance_matrix_2(network):
     """
 
     n = len(network.nodes)
-    L = csgraph.laplacian(np.matrix(nx.adjacency_matrix(network).todense().astype(float)), normed=False)
+    L = csgraph.laplacian(np.matrix(nx.adjacency_matrix(network).todense().astype(float)), normed = False)
     Phi = np.ones((n, n)) / n
     Gamma = np.linalg.pinv(L + Phi)
 
@@ -42,6 +44,46 @@ def effective_resistance_matrix_2(network):
         [[Gamma[i, i] + Gamma[j, j] - (2 * Gamma[i, j]) if i != j else 0 for j in range(n)] for i in range(n)])
 
     return res
+
+
+def torch_resistance_matrix(ei, ew, L=None, Linv=None, inversion='ones', device='cuda', n=None):
+    """
+    Torch computation of effective effective resistance matrix.
+    $$\mathbf{R} \in \mathbb{R}^{n x n} = (1^T * diag(L^+)) + (diag(L^+)^T * 1) - (2 * L^+)$$
+    where L^+ is the pseudoinverse of the Laplacian matrix L if inversion='pinv' or the inverse of L+1.1^T/n if inversion='ones'.
+    Args:
+        ei (_type_): adjacency edge_index: 2x|E|. E.g. i-th is (ei[])
+        ew (_type_): adjacency edge_weight: 1x|E| with the weight of the i-th edge in ei. E.g 1 if Adjacency matrix
+        L (_type_, optional): precomputed L. Defaults to None.
+        Linv (_type_, optional): precomputed pinv. Defaults to None.
+        inversion (str, optional): type of inverse computation: pseudoinverse or inverse of L+1.1^T/n. Defaults to 'pinv'.
+        device (str, optional): device to send the Laplacian or the ones matrix if inversion='ones'. Defaults to 'cpu'.
+        n (int, optional): number of nodes. Defaults to None.
+    Returns:
+        torch.tensor: complete pairwise resistance matrix
+    """
+    if Linv is None:
+        if L is None:
+            L_ei, Lew  = pyg.utils.get_laplacian(ei, ew)
+            L = pyg.utils.to_dense_adj(edge_index = L_ei, edge_attr = Lew)[0] 
+            L = L.to(device)
+
+        if inversion =='pinv':
+            Linv = torch.linalg.pinv(L, hermitian=True)
+        elif inversion =='ones':
+            n = L.shape[0] if n is None else n
+            #Phi = (torch.ones((n, n), dtype=L.dtype) / n).to(device)
+            Phi = 1/n
+            #this might be optimized to L+(1/n) instead of Phi to save memory but still not tested
+            Linv = torch.linalg.inv(L+Phi)
+        else:
+            raise ValueError(f"Invalid inversion type: {inversion}. Valid types: ['pinv', 'ones']")
+        
+    pinv_diagonal = torch.diagonal(Linv)
+    # u = torch.ones(pinv_diagonal.shape[0])
+    # Next line is equivalent to u.unsqueeze(1) @ pinv_diagonal.unsqueeze(0) +  pinv_diagonal.unsqueeze(1) @ u.unsqueeze(0)- 2*pinv
+    return pinv_diagonal.unsqueeze(0) +  pinv_diagonal.unsqueeze(1) - 2*Linv
+
 
 def biharmonic(network):
     """Calculate biharmonic distance for each node pair in the network.
