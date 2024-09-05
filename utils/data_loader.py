@@ -165,6 +165,7 @@ def load_data(dataset, device, dtype=torch.float32, **kwargs):
         GW = GraphWrapper(dataset[0].edge_index, labels=dataset[0].y, device=device, dtype=dtype)
         del dataset
         return GW
+    
     elif dataset == "facebook":
         edges, _, _, sens = process_facebook('data/facebook', return_adj=False)
         return GraphWrapper(edges, sensitive_attr=sens, device=device, dtype=dtype)
@@ -238,6 +239,59 @@ def load_data(dataset, device, dtype=torch.float32, **kwargs):
 
         return GraphWrapper(bidir_edges, sensitive_attr=sens, device=device, dtype=dtype)
 
+    elif dataset == "google":
+        #* Read files of edges and features
+        PATH = 'data/google/'
+        edges = []
+        with open(PATH + "google.edges.txt") as edges_file:
+            for line in edges_file:
+                edges.append([int(one) for one in line.strip("\n").split(" ")])
+
+        feats = []
+        with open(PATH + "google.feat.txt") as feats_file:
+            for line in feats_file:
+                feats.append([int(one) for one in line.strip("\n").split(" ")])
+
+        feat_name = []
+        with open(PATH + "google.featnames.txt") as feat_name_file:
+            for line in feat_name_file:
+                feat_name.append(line.strip("\n").split(" "))
+            names = {}
+            for name in feat_name:
+                if name[1] not in names:
+                    names[name[1]] = name[1]  
+
+        #* Map original node id to new ID by order of appearance in the edgelist (thus, we only get non-isolated nodes)
+        unique_nodes = np.unique(edges)
+        n_nodes = unique_nodes.shape[0]
+        node_mapping = {}
+        for j, id in enumerate(unique_nodes):
+            node_mapping[id] = j
+
+        #* We order the features by the new node ID, so id coincide with the row id in the features
+        feats = np.array(feats)
+        filter_feats = np.zeros((n_nodes, feats.shape[1]), dtype='O')
+        for node in node_mapping:
+            filter_feats[node_mapping[node]] = feats[feats[:,0] == node]
+        del feats
+
+
+        #* Remove ID and select sensitive attribute and labels
+        filter_feats = filter_feats[:, 1:]
+        filter_feats = np.array(filter_feats, dtype=float)
+        sens = torch.Tensor(filter_feats[:, 0])
+        labels = torch.Tensor(filter_feats[:, 164])
+        # Remove sensitive attribute and labels from features
+        filter_feats = np.concatenate([filter_feats[:, :164], filter_feats[:, 165:]], -1)
+        filter_feats = filter_feats[:, 1:]
+
+        #* Read edges, map by node ID, make bidirectional, remove duplicated edges and transpose to (2,N) shape
+        edges = np.array(edges)
+        newedges = np.array([[node_mapping[e[0]], node_mapping[e[1]]]for e in edges])
+        newedges = np.vstack([newedges, newedges[:,[1,0]]])
+        newedges = np.unique(newedges, axis=0).astype(np.int64)
+
+        return GraphWrapper(torch.Tensor(newedges.T).long(), sensitive_attr=sens, device=device)
 
     elif dataset == "twitter":
         raise NotImplementedError("Twitter dataset not implemented yet")
@@ -277,6 +331,7 @@ def load_data(dataset, device, dtype=torch.float32, **kwargs):
         # sensitive group to numpy array
         sensitive_group = np.array(list(sensitive_group.values()))"""
         raise NotImplementedError("Pokec dataset not implemented yet")
+    
     elif dataset == "SBM":
         sizes = [40, 40, 15, 15]
         #sizes = [150, 150, 50, 50]

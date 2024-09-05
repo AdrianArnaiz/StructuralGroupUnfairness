@@ -20,7 +20,8 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('--links', type=int, default=20,
                     help='number of links to use in the experiment')
 parser.add_argument('--dataset', type=str, default='facebook',
-                    help='name of the dataset to use in the experiment')
+                    help='name of the dataset to use in the experiment',
+                    choices=['facebook', 'google', 'UNC28'])
 parser.add_argument('--model', type=str, default='ERP', choices=['ERP', 'deepwalk', 'node2vec', 'random', 'cosine'],
                     help='name of the model to use in the experiment')
 parser.add_argument('--strategy', type=str, default='weak',
@@ -32,6 +33,8 @@ parser.add_argument('--floattype', type=str, default='float32',
 
 args = parser.parse_args()
 
+print()
+print(args)
 N_LINKS = args.links
 DATASET = args.dataset
 MODEL = args.model
@@ -116,8 +119,9 @@ for i in tqdm(range(N_LINKS)):
         u, v = lkadd.get_random_link(GW.edge_mask)
     elif MODEL == 'ERP':
         S = GW.get_effective_resistance()
-    else:    
-        S = lkadd.get_edge_score(GW, MODEL, **opt_args)
+    else:
+        if MODEL != 'deepwalk' or i%10 == 0:
+            S = lkadd.get_edge_score(GW, MODEL, **opt_args)
 
     
     #* Select edge based on score
@@ -137,8 +141,9 @@ for i in tqdm(range(N_LINKS)):
     logger.info(f"Added link {u},{v}")
     logger.info(f"Number of links: {GW.num_edges}")
     logger.info(f"Update metrics")
+    Rcpu = GW.get_effective_resistance().cpu().detach()
     for group in unique_groups:
-        group_res = ermet.get_group_metrics(GW.get_effective_resistance().cpu().detach(),
+        group_res = ermet.get_group_metrics(Rcpu,
                                             GW.sens.cpu().detach()==group,
                                             ~GW.edge_mask.cpu().detach())
         for metric in group_res:

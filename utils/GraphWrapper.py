@@ -14,7 +14,8 @@ class GraphWrapper:
                  sensitive_attr: Optional[torch.Tensor] = None,
                  labels: Optional[torch.Tensor] = None,
                  device: str = 'cpu',
-                 dtype: torch.dtype = torch.float32):
+                 dtype: torch.dtype = torch.float32,
+                 mode: str = None):
         """Wrapper for a graph with a Laplacian matrix, assuming totally connected graph
 
         Args:
@@ -53,9 +54,12 @@ class GraphWrapper:
             self.laplacian = laplacian.type(self.dtype).to(self.device)
 
         self.num_nodes = int(self.laplacian.shape[0])
-        self.mode = 'exact' if self.num_nodes < 10000 else 'woodbury'
-        print(self.mode)
+        if mode is None:
+            self.mode = 'exact' if self.num_nodes < 10000 else 'woodbury'
+        else:
+            self.mode = mode
         self.num_edges = int(self.laplacian.diagonal().sum()/2)
+        print(f"""Loaded Graph with {self.num_nodes} nodes and {self.num_edges} edges - L computation mode: {self.mode}""")
 
 
         if pinv is None:
