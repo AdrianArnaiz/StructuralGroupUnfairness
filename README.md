@@ -1,14 +1,46 @@
-# Algorithms for Social Justice: Affirmative Action in Social Networks
+# Structural Group Unfairness: Measurement and Mitigation by means of the Effective Resistance
+[📄 Download Paper (PDF)](https://arxiv.org/abs/2305.03223)
+* **Adrian Arnaiz-Rodriguez, Georgina Curto, Nuria Oliver**
+* Accepted at **[ICWSM 2025](https://www.icwsm.org/2025/index.html)**
 
-Authors: **Georgina Curto, Adrian Arnaiz-Rodriguez, Nuria Oliver**
+## Overview
+Social networks contribute to the distribution of *social capital*—relationships and norms that enable cooperation within communities. 
+We propose three effective resistance-based metrics to quantify **group social capital**:
+- **Group Isolation**
+- **Group Diameter**
+- **Group Control**
 
-Recommender Systems following Affirmative Action ethical principles by defining the information flow of the graph using commute times (effective resistance) with the goal of improving the visibility of discriminated groups while increasing the ease of information flow on the entire network. Therefore, we propose different measures based on **Effectice Resistance** (**Commute Times**) to characterize the inflormation flow on the network, and the visibility of groups of nodes.
+These metrics allow us to detect **Structural Group Unfairness**—disparities in access to social capital between groups. We further present a **budgeted edge augmentation heuristic** to reduce such disparities, improving fairness and overall network connectivity.
 
-* **ERA-Link**: prioritizes edges that destroy echo chambers while increase visibility and social capital of vulnerable groups.
-* **ER-Link**: proposes edges that effectively destroy information silos in the entire network.
+## Contributions
+- 📐 **Novel Metrics**: Group-level social capital measures using effective resistance.
+- 🧠 **Spectral Graph Theory** foundation (Effective Resistance a.k.a. Commute Time).
+- ⚖️ **Structural Group Unfairness** definition & measurement.
+- 🛠️ **Mitigation Strategy**: Edge addition heuristic that enhances fairness.
+- 📊 **Empirical Validation** on real-world social networks.
 
-![Affirmative Action Recommender Systems](figure1.jpg?raw=true "Affirmative Action Recommender Systems")
+## Repository Structure
+```
+.
+├── data/                  # Sample datasets or download scripts
+├── utils/                 # Core algorithms for measurement and mitigation
+|   ├── GraphWrapper.py              # Graph Object optimized for spectral computations and link additions 
+|   ├── link_addition_torch.py       # Get edge scores and strongest-weakest ones
+|   ├── torch_resistance_metrics.py  # Optimized implementation of effective resistance
+|   ├── {baseline}.py                # Baseline algorithms for comparison  
+|   └── resistance_metrics.py        # Computation of metrics derived from effective resistance (Group Isolation,...)
+└── main{}.py              # Main scripts to run the measurement and mitigation with diff strategies
+```
 
-## Citation
+## 📑 Citation
+```bibtex
+@inproceedings{arnaiz2025structural,
+  title={Structural Group Unfairness: Measurement and Mitigation by means of the Effective Resistance},
+  author={Arnaiz-Rodriguez, Adrian and Curto, Georgina and Oliver, Nuria},
+  booktitle={Proceedings of the International Conference on Web and Social Media (ICWSM)},
+  year={2025}
+}
+```
 
-Under Review
+## Contact
+For questions, please contact: [adrian@ellisalicante.org](mailto:adrian@ellisalicante.org)

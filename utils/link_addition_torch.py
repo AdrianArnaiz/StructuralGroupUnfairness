@@ -61,8 +61,7 @@ def get_edge_score(GW, model, **kwargs):
                 optimizer.step()  # optimize the parameters
                 #total_loss += loss.item()
                 #return total_loss / len(loader)
-                print('oooooooooooooooooooooooooooo')
-        print('UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU')
+                
         model.eval()
         Z = model(torch.arange(GW.num_nodes, device=kwargs['device']))
         return torch.matmul(Z, Z.T)
