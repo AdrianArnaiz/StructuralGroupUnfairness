@@ -1,5 +1,5 @@
 # Structural Group Unfairness: Measurement and Mitigation by means of the Effective Resistance
-[📄 Download Paper (PDF)](https://arxiv.org/abs/2305.03223)
+[📄 Paper - https://arxiv.org/abs/2305.03223](https://arxiv.org/abs/2305.03223)
 * **Adrian Arnaiz-Rodriguez, Georgina Curto, Nuria Oliver**
 * Accepted at **[ICWSM 2025](https://www.icwsm.org/2025/index.html)**
 
@@ -12,6 +12,8 @@ We propose three effective resistance-based metrics to quantify **group social c
 
 These metrics allow us to detect **Structural Group Unfairness**—disparities in access to social capital between groups. We further present a **budgeted edge augmentation heuristic** to reduce such disparities, improving fairness and overall network connectivity.
 
+> We provide different versions of the PyTorch code to compute **Effective Resistance**. More theoretical details about the behaviour of this metric can be found on the **Appendix A of the paper**.
+
 ## Contributions
 - 📐 **Novel Metrics**: Group-level social capital measures using effective resistance.
 - 🧠 **Spectral Graph Theory** foundation (Effective Resistance a.k.a. Commute Time).
@@ -22,14 +24,14 @@ These metrics allow us to detect **Structural Group Unfairness**—disparities i
 ## Repository Structure
 ```
 .
-├── data/                  # Sample datasets or download scripts
-├── utils/                 # Core algorithms for measurement and mitigation
+├── data/                         # Sample datasets or download scripts
+├── utils/                        # Core algorithms for measurement and mitigation
 |   ├── GraphWrapper.py              # Graph Object optimized for spectral computations and link additions 
 |   ├── link_addition_torch.py       # Get edge scores and strongest-weakest ones
-|   ├── torch_resistance_metrics.py  # Optimized implementation of effective resistance
-|   ├── {baseline}.py                # Baseline algorithms for comparison  
-|   └── resistance_metrics.py        # Computation of metrics derived from effective resistance (Group Isolation,...)
-└── main{}.py              # Main scripts to run the measurement and mitigation with diff strategies
+|   ├── torch_resistance_metrics.py  # Computation of metrics derived from effective resistance (Group Isolation,...)
+|   ├── resistance_metrics.py        # Optimized implementation of effective resistance
+|   └── {baseline}.py                # Baseline algorithms for comparison         
+└── main_{baseline_}experiment.py # Main scripts to run the measurement and mitigation with diff strategies
 ```
 
 ## 📑 Citation

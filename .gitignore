@@ -144,3 +144,12 @@ data_figs
 
 temp_data/
 
+#clean up final version
+AffirmativeRecsys.ipynb
+animation.gif
+line_graph_example.ipynb
+main.py
+show_results.ipynb
+TEST_*.ipynb
+torch_example.ipynb
+VIZ_SIR_REBUTTAL.ipynb
